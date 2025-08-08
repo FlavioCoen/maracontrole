@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Entradas e Saídas</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 1rem;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .calendar {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .dates {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      margin-top: 5px;
+    }
+
+    .date {
+      padding: 10px;
+      background: #e0e0e0;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .date:hover {
+      background: #2196f3;
+      color: white;
+    }
+
+    .date.active {
+      background: #2196f3;
+      color: white;
+      font-weight: bold;
+    }
+
+    .form, .entries {
+      max-width: 800px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      margin-top: 10px;
+      width: 100%;
+      padding: 10px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #45a049;
+    }
+
+    .entry {
+      border-bottom: 1px solid #ccc;
+      padding: 8px 0;
+    }
+
+    .totals {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 600px) {
+      .days, .dates {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Entradas e Saídas</h1>
+
+  <div class="calendar">
+    <h2 id="mesAno" style="text-align: center; margin-bottom: 0.5rem;"></h2>
+    <div class="header">
+      <button onclick="mudarMes(-1)">⬅️ Mês anterior</button>
+      <button onclick="mudarMes(1)">Próximo mês ➡️</button>
+    </div>
+    <div class="days">
+      <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+    </div>
+    <div class="dates" id="diasCalendario"></div>
+  </div>
+
+  <div class="form" id="formulario" style="display:none;">
+    <h3>Adicionar serviço para <span id="dataSelecionada"></span></h3>
+    <label>Nome do Cliente:
+      <input type="text" id="cliente" />
+    </label>
+    <label>Serviço:
+      <textarea id="servico"></textarea>
+    </label>
+    <label>Valor Recebido (R$):
+      <input type="number" id="valor" step="0.01" />
+    </label>
+    <label>Forma de Pagamento:
+      <select id="formaPagamento">
+        <option value="Dinheiro">Dinheiro</option>
+        <option value="Pix">Pix</option>
+        <option value="Débito">Débito</option>
+        <option value="Troca">Troca</option>
+        <option value="Parcelado 1x">Parcelado 1x</option>
+        <option value="Parcelado 2x">Parcelado 2x</option>
+        <option value="Parcelado 3x">Parcelado 3x</option>
+        <option value="Parcelado 4x">Parcelado 4x</option>
+        <option value="Parcelado 5x">Parcelado 5x</option>
+        <option value="Parcelado 6x">Parcelado 6x</option>
+        <option value="Parcelado 7x">Parcelado 7x</option>
+        <option value="Parcelado 8x">Parcelado 8x</option>
+        <option value="Parcelado 9x">Parcelado 9x</option>
+        <option value="Parcelado 10x">Parcelado 10x</option>
+      </select>
+    </label>
+    <label>Valor de Saída (R$):
+      <input type="number" id="saida" step="0.01" />
+    </label>
+    <label>Motivo da Saída:
+      <input type="text" id="motivo" />
+    </label>
+    <button onclick="adicionarServico()">Salvar</button>
+  </div>
+
+  <div class="entries">
+    <h3>Serviços do Dia</h3>
+    <div id="listaServicos"></div>
+    <div class="totals" id="totaisDia"></div>
+    <div class="totals" id="totaisMes"></div>
+  </div>
+
+  <script>
+    let dataAtual = new Date();
+    let dataSelecionada = null;
+    let dados = JSON.parse(localStorage.getItem('servicosData') || '{}');
+
+    function salvarDados() {
+      localStorage.setItem('servicosData', JSON.stringify(dados));
+    }
+
+    function formatarDataISO(data) {
+      return data.toISOString().split('T')[0];
+    }
+
+    function mostrarCalendario() {
+      const diasEl = document.getElementById('diasCalendario');
+      const mesAnoEl = document.getElementById('mesAno');
+      diasEl.innerHTML = '';
+
+      const ano = dataAtual.getFullYear();
+      const mes = dataAtual.getMonth();
+      const primeiroDia = new Date(ano, mes, 1);
+      const ultimoDia = new Date(ano, mes + 1, 0);
+      const diaSemana = primeiroDia.getDay();
+
+      mesAnoEl.textContent = primeiroDia.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+
+      for (let i = 0; i < diaSemana; i++) {
+        const vazio = document.createElement('div');
+        diasEl.appendChild(vazio);
+      }
+
+      for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
+        const d = new Date(ano, mes, dia);
+        const div = document.createElement('div');
+        div.classList.add('date');
+        if (formatarDataISO(d) === dataSelecionada) {
+          div.classList.add('active');
+        }
+        div.textContent = dia;
+        div.onclick = () => {
+          dataSelecionada = formatarDataISO(d);
+          document.getElementById('dataSelecionada').textContent = new Date(dataSelecionada).toLocaleDateString('pt-BR');
+          document.getElementById('formulario').style.display = 'block';
+          mostrarServicos();
+          mostrarCalendario();
+        };
+        diasEl.appendChild(div);
+      }
+
+      mostrarResumoMensal();
+    }
+
+    function mudarMes(offset) {
+      dataAtual.setMonth(dataAtual.getMonth() + offset);
+      mostrarCalendario();
+    }
+
+    function adicionarServico() {
+      const cliente = document.getElementById('cliente').value;
+      const servico = document.getElementById('servico').value;
+      const valor = parseFloat(document.getElementById('valor').value) || 0;
+      const formaPagamento = document.getElementById('formaPagamento').value;
+      const saida = parseFloat(document.getElementById('saida').value) || 0;
+      const motivo = document.getElementById('motivo').value;
+
+      if (!cliente || !servico) {
+        alert("Preencha todos os campos obrigatórios!");
+        return;
+      }
+
+      if (!dados[dataSelecionada]) {
+        dados[dataSelecionada] = [];
+      }
+
+      dados[dataSelecionada].push({ cliente, servico, valor, saida, motivo, formaPagamento });
+      salvarDados();
+
+      document.getElementById('cliente').value = '';
+      document.getElementById('servico').value = '';
+      document.getElementById('valor').value = '';
+      document.getElementById('formaPagamento').value = 'Dinheiro';
+      document.getElementById('saida').value = '';
+      document.getElementById('motivo').value = '';
+
+      mostrarServicos();
+      mostrarResumoMensal();
+    }
+
+    function mostrarServicos() {
+      const lista = document.getElementById('listaServicos');
+      const totalEl = document.getElementById('totaisDia');
+      lista.innerHTML = '';
+      let total = 0;
+      let saidaTotal = 0;
+
+      if (dados[dataSelecionada]) {
+        for (const item of dados[dataSelecionada]) {
+          const div = document.createElement('div');
+          div.classList.add('entry');
+          div.textContent = `Cliente: ${item.cliente} | Serviço: ${item.servico} | R$ ${item.valor.toFixed(2)} | Forma: ${item.formaPagamento || '-'} | Saída: R$ ${item.saida.toFixed(2)} | Motivo: ${item.motivo || '-'}`;
+          lista.appendChild(div);
+          total += item.valor;
+          saidaTotal += item.saida;
+        }
+      }
+
+      totalEl.textContent = `Total do Dia: R$ ${total.toFixed(2)} | Saídas: R$ ${saidaTotal.toFixed(2)} | Líquido: R$ ${(total - saidaTotal).toFixed(2)}`;
+    }
+
+    function mostrarResumoMensal() {
+      const totalMesEl = document.getElementById('totaisMes');
+      const ano = dataAtual.getFullYear();
+      const mes = (dataAtual.getMonth() + 1).toString().padStart(2, '0');
+      let total = 0;
+      let saidaTotal = 0;
+
+      for (let data in dados) {
+        if (data.startsWith(`${ano}-${mes}`)) {
+          for (const item of dados[data]) {
+            total += item.valor;
+            saidaTotal += item.saida;
+          }
+        }
+      }
+
+      totalMesEl.textContent = `Total do Mês: R$ ${total.toFixed(2)} | Saídas: R$ ${saidaTotal.toFixed(2)} | Líquido: R$ ${(total - saidaTotal).toFixed(2)}`;
+    }
+
+    // Seleciona o dia atual ao carregar a página
+    window.onload = () => {
+      const hoje = new Date();
+      dataSelecionada = hoje.toISOString().split('T')[0];
+      document.getElementById('dataSelecionada').textContent = hoje.toLocaleDateString('pt-BR');
+      document.getElementById('formulario').style.display = 'block';
+      mostrarCalendario();
+      mostrarServicos();
+    }
+  </script>
+</body>
+</html>
