@@ -7,7 +7,13 @@
   <style>
     body { font-family: sans-serif; background:#f4f4f4; margin:0; padding:1rem 1rem 1rem 1rem; }
     .calendar, .form, .entries { max-width:800px; margin:12px auto; background:#fff; padding:1rem; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
-    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;gap:8px}
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:0.5rem;
+      gap:8px;
+    }
     .days{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-weight:bold}
     .dates{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:6px}
     .date{padding:10px;background:#e0e0e0;border-radius:6px;cursor:pointer;text-align:center; user-select:none;}
@@ -22,6 +28,8 @@
     .entry .info{flex:1}
     .entry .actions{display:flex;gap:8px;align-items:center}
     .totals{font-weight:bold;margin-top:10px}
+    .totaisMesEntrada { color: red; }
+    .totaisMesSaida { color: blue; }
     .small-btn{background:#ef4444;padding:6px 8px;border-radius:6px}
     .muted{color:#666;font-size:0.9rem}
     @media (max-width:600px){ .days,.dates{grid-template-columns:repeat(7,1fr)} }
@@ -30,12 +38,10 @@
 <body>
 
   <div class="calendar">
-    <h2 id="mesAno" style="text-align:center;margin-bottom:0.25rem"></h2>
+    <h2 id="mesAno" style="text-align:center;margin-bottom:0.25rem; text-transform: uppercase;"></h2>
     <div class="header">
-      <div style="display:flex;gap:8px">
-        <button onclick="mudarMes(-1)">⬅️ Mês anterior</button>
-        <button onclick="mudarMes(1)">Próximo mês ➡️</button>
-      </div>
+      <button onclick="mudarMes(-1)">⬅️ Mês anterior</button>
+      <button onclick="mudarMes(1)">Próximo mês ➡️</button>
     </div>
 
     <div class="days">
@@ -128,7 +134,7 @@
       const ultimoDia = new Date(ano, mes + 1, 0);
       const diaSemana = primeiroDia.getDay(); // 0-6
 
-      mesAnoEl.textContent = primeiroDia.toLocaleString('pt-BR', { month:'long', year:'numeric' });
+      mesAnoEl.textContent = primeiroDia.toLocaleString('pt-BR', { month:'long', year:'numeric' }).toUpperCase();
 
       // espaços em branco antes do primeiro dia
       for(let i=0;i<diaSemana;i++){
@@ -267,7 +273,7 @@
       });
 
       document.getElementById('totaisDia').textContent =
-        `Total entrada: R$ ${totalEntrada.toFixed(2)} | Total saída: R$ ${totalSaida.toFixed(2)}`;
+        `Total entrada do dia: R$ ${totalEntrada.toFixed(2)} | Total saída do dia: R$ ${totalSaida.toFixed(2)}`;
     }
 
     function mostrarResumoMensal(){
@@ -287,8 +293,8 @@
         }
       }
 
-      document.getElementById('totaisMes').textContent =
-        `Total do mês: Entrada R$ ${totalMesEntrada.toFixed(2)} | Saída R$ ${totalMesSaida.toFixed(2)}`;
+      document.getElementById('totaisMes').innerHTML =
+        `Total de entrada no mês: <span class="totaisMesEntrada">R$ ${totalMesEntrada.toFixed(2)}</span> | Saída no mês: <span class="totaisMesSaida">R$ ${totalMesSaida.toFixed(2)}</span>`;
     }
 
     // Exporta os dados do localStorage para arquivo JSON
@@ -332,7 +338,6 @@
     });
 
     // Inicialização
-    // Seleciona o dia de hoje automaticamente ao carregar a página
     window.onload = () => {
       const hoje = new Date();
       dataSelecionada = formatDateLocal(hoje);
