@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Entradas e Saídas — Calendário</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 1rem 1rem 1rem 1rem; /* removi espaçamento superior */
+    }
+    /* Remove espaço superior do body */
+    h1 {
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+    .calendar,
+    .form,
+    .entries {
+      max-width: 800px;
+      margin: 12px auto;
+      background: #fff;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      gap: 8px;
+    }
+    .days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-weight: bold;
+    }
+    .dates {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .date {
+      padding: 10px;
+      background: #e0e0e0;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      position: relative;
+      user-select: none;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .date:hover {
+      background: #2196f3;
+      color: #fff;
+    }
+    .date.active {
+      background: #2196f3;
+      color: #fff;
+      font-weight: bold;
+    }
+    /* Destaque do dia de hoje com borda vermelha */
+    .date.today {
+      border: 2px solid #e53935;
+    }
+    /* Se o dia for hoje e ativo, mantém fundo azul e borda vermelha */
+    .date.active.today {
+      box-sizing: border-box;
+      border: 2px solid #e53935;
+    }
+    .blank {
+      background: transparent;
+      cursor: default;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input[type="text"],
+    input[type="number"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    button {
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 0;
+      background: #4caf50;
+      color: white;
+      cursor: pointer;
+      font-size: 1rem;
+      font-family: inherit;
+      margin-top: 12px;
+    }
+    button:hover {
+      opacity: 0.95;
+    }
+    .entry {
+      border-bottom: 1px solid #eee;
+      padding: 8px 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+    .entry .info {
+      flex: 1;
+    }
+    .entry .actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .totals {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .small-btn {
+      background: #ef4444;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .small-btn:hover {
+      opacity: 0.9;
+    }
+    .muted {
+      color: #666;
+      font-size: 0.9rem;
+    }
+    @media (max-width: 600px) {
+      .days,
+      .dates {
+        grid-template-columns: repeat(7, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="calendar">
+    <h2 id="mesAno" style="text-align:center;margin-bottom:0.25rem"></h2>
+    <div class="header">
+      <div style="display:flex;gap:8px">
+        <button onclick="mudarMes(-1)">⬅️ Mês anterior</button>
+        <button onclick="mudarMes(1)">Próximo mês ➡️</button>
+      </div>
+    </div>
+
+    <div class="days">
+      <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+    </div>
+
+    <div class="dates" id="diasCalendario"></div>
+  </div>
+
+  <div class="form" id="formulario" style="display:none;">
+    <h3>Adicionar serviço para <span id="dataSelecionada"></span></h3>
+
+    <label>Nome do Cliente:
+      <input type="text" id="cliente" />
+    </label>
+
+    <label>Serviço:
+      <textarea id="servico"></textarea>
+    </label>
+
+    <label>Valor (R$):
+      <input type="number" id="valor" step="0.01" />
+    </label>
+
+    <label>Forma de Pagamento:
+      <select id="formaPagamento">
+        <option value="Dinheiro">Dinheiro</option>
+        <option value="Pix">Pix</option>
+        <option value="Débito">Débito</option>
+        <option value="Troca">Troca</option>
+        <option value="Parcelado 1x">Parcelado 1x</option>
+        <option value="Parcelado 2x">Parcelado 2x</option>
+        <option value="Parcelado 3x">Parcelado 3x</option>
+        <option value="Parcelado 4x">Parcelado 4x</option>
+        <option value="Parcelado 5x">Parcelado 5x</option>
+        <option value="Parcelado 6x">Parcelado 6x</option>
+      </select>
+    </label>
+
+    <label>Valor de Saída (R$):
+      <input type="number" id="saida" step="0.01" />
+    </label>
+
+    <label>Motivo da Saída:
+      <input type="text" id="motivo" />
+    </label>
+
+    <button onclick="adicionarServico()">Salvar</button>
+  </div>
+
+  <div class="entries">
+    <h3>Serviços do Dia</h3>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button id="removerMarcadosBtn" onclick="removerMarcados()" style="display:none;background:#ef4444">Remover selecionados</button>
+    </div>
+    <div id="listaServicos"></div>
+    <div class="totals" id="totaisDia"></div>
+    <div class="totals" id="totaisMes"></div>
+  </div>
+
+  <script>
+    function criarDataLocal(ano, mes, dia) {
+      return new Date(ano, mes, dia, 12);
+    }
+    function pad(n){ return String(n).padStart(2,'0'); }
+    function formatDateLocal(d){
+      return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+    }
+    function parseISOToLocalDate(iso){
+      const [y,m,day] = iso.split('-').map(Number);
+      return criarDataLocal(y, m-1, day);
+    }
+
+    let dataAtual = new Date();
+    let dataSelecionada = null;
+    let dados = JSON.parse(localStorage.getItem('servicosData') || '{}');
+
+    function salvarDados(){ localStorage.setItem('servicosData', JSON.stringify(dados)); }
+
+    function mostrarCalendario(){
+      const diasEl = document.getElementById('diasCalendario');
+      const mesAnoEl = document.getElementById('mesAno');
+      diasEl.innerHTML = '';
+
+      const ano = dataAtual.getFullYear();
+      const mes = dataAtual.getMonth();
+      const primeiroDia = criarDataLocal(ano, mes, 1);
+      const ultimoDia = criarDataLocal(ano, mes + 1, 0);
+      const diaSemana = primeiroDia.getDay();
+
+      mesAnoEl.textContent = primeiroDia.toLocaleString('pt-BR', { month:'long', year:'numeric' });
+
+      for(let i=0;i<diaSemana;i++){
+        const vazio = document.createElement('div');
+        vazio.classList.add('blank');
+        diasEl.appendChild(vazio);
+      }
+
+      const hojeStr = formatDateLocal(new Date());
+
+      for(let dia=1; dia<=ultimoDia.getDate(); dia++){
+        const d = criarDataLocal(ano, mes, dia);
+        const iso = formatDateLocal(d);
+        const div = document.createElement('div');
+        div.classList.add('date');
+        if (dataSelecionada === iso) div.classList.add('active');
+        if (iso === hojeStr) div.classList.add('today');
+        div.textContent = dia;
+        div.onclick = () => {
+          dataSelecionada = iso;
+          document.getElementById('dataSelecionada').textContent = d.toLocaleDateString('pt-BR');
+          document.getElementById('formulario').style.display = 'block';
+          mostrarServicos();
+          mostrarCalendario();
+        };
+        diasEl.appendChild(div);
+      }
+
+      mostrarResumoMensal();
+    }
+
+    function mudarMes(offset){
+      dataAtual.setMonth(dataAtual.getMonth() + offset);
+      mostrarCalendario();
+    }
+
+    function adicionarServico(){
+      if(!dataSelecionada){
+        alert('Selecione um dia no calendário primeiro.');
+        return;
+      }
+
+      const cliente = document.getElementById('cliente').value.trim();
+      const servico = document.getElementById('servico').value.trim();
+      const valor = parseFloat(document.getElementById('valor').value) || 0;
+      const formaPagamento = document.getElementById('formaPagamento').value;
+      const saida = parseFloat(document.getElementById('saida').value) || 0;
+      const motivo = document.getElementById('motivo').value.trim();
+
+      if(!cliente || !servico){
+        alert('Preencha os campos obrigatórios (cliente e serviço).');
+        return;
+      }
+
+      if(!dados[dataSelecionada]) dados[dataSelecionada] = [];
+
+      dados[dataSelecionada].push({ cliente, servico, valor, saida, motivo, formaPagamento });
+      salvarDados();
+
+      document.getElementById('cliente').value = '';
+      document.getElementById('servico').value = '';
+      document.getElementById('valor').value = '';
+      document.getElementById('formaPagamento').value = 'Dinheiro';
+      document.getElementById('saida').value = '';
+      document.getElementById('motivo').value = '';
+
+      mostrarServicos();
+      mostrarResumoMensal();
+    }
+
+    function mostrarServicos(){
+      const lista = document.getElementById('listaServicos');
+      const totalEl = document.getElementById('totaisDia');
+      const removerMarcadosBtn = document.getElementById('removerMarcadosBtn');
+      lista.innerHTML = '';
+      removerMarcadosBtn.style.display = 'none';
+
+      if(!dataSelecionada || !dados[dataSelecionada] || dados[dataSelecionada].length === 0){
+        lista.innerHTML = '<div class="muted">Nenhum serviço para este dia.</div>';
+        totalEl.textContent = '';
+        return;
+      }
+
+      removerMarcadosBtn.style.display = 'inline-block';
+
+      let total = 0;
+      let saidaTotal = 0;
+
+      dados[dataSelecionada].forEach((item, idx) => {
+        total += Number(item.valor) || 0;
+        saidaTotal += Number(item.saida) || 0;
+
+        const row = document.createElement('div');
+        row.classList.add('entry');
+
+        const info = document.createElement('div');
+        info.classList.add('info');
+        info.innerHTML = `<strong>${item.cliente}</strong> | ${item.servico}<br class="muted"><span class="muted">R$ ${Number(item.valor).toFixed(2)} | Forma: ${item.formaPagamento || '-'} | Saída: R$ ${Number(item.saida).toFixed(2)} | Motivo: ${item.motivo || '-'}</span>`;
+
+        const actions = document.createElement('div');
+        actions.classList.add('actions');
+
+        const removeChk = document.createElement('input');
+        removeChk.type = 'checkbox';
+        removeChk.className = 'remove-chk';
+        removeChk.dataset.index = idx;
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'small-btn';
+        delBtn.textContent = 'Excluir';
+        delBtn.title = 'Excluir este item';
+        delBtn.addEventListener('click', () => {
+          if(confirm('Excluir este serviço?')) {
+            dados[dataSelecionada].splice(idx, 1);
+            if(dados[dataSelecionada].length === 0) delete dados[dataSelecionada];
+            salvarDados();
+            mostrarServicos();
+            mostrarResumoMensal();
+          }
+        });
+
+        actions.appendChild(removeChk);
+        const labelRm = document.createElement('span'); labelRm.className='muted'; labelRm.textContent='Remover';
+        actions.appendChild(labelRm);
+        actions.appendChild(delBtn);
+
+        row.appendChild(info);
+        row.appendChild(actions);
+        lista.appendChild(row);
+      });
+
+      totalEl.textContent = `Total do Dia: R$ ${total.toFixed(2)} | Saídas: R$ ${saidaTotal.toFixed(2)} | Líquido: R$ ${(total - saidaTotal).toFixed(2)}`;
+    }
+
+    function removerMarcados(){
+      if(!dataSelecionada || !dados[dataSelecionada]) return;
+      const listaEl = document.getElementById('listaServicos');
+      const checkboxes = listaEl.querySelectorAll('input.remove-chk');
+      const indicesToRemove = [];
+      checkboxes.forEach(chk => {
+        if(chk.checked) indicesToRemove.push(Number(chk.dataset.index));
+      });
+      if(indicesToRemove.length === 0){ alert('Marque ao menos um item para remover.'); return; }
+      if(!confirm(`Remover ${indicesToRemove.length} item(ns)?`)) return;
+
+      indicesToRemove.sort((a,b)=>b-a).forEach(i => {
+        dados[dataSelecionada].splice(i,1);
+      });
+      if(dados[dataSelecionada].length === 0) delete dados[dataSelecionada];
+      salvarDados();
+      mostrarServicos();
+      mostrarResumoMensal();
+    }
+
+    function mostrarResumoMensal(){
+      const totaisMesEl = document.getElementById('totaisMes');
+      const ano = dataAtual.getFullYear();
+      const mes = dataAtual.getMonth();
+
+      let totalMes = 0;
+      let saidaMes = 0;
+
+      for(let dia=1; dia<=31; dia++){
+        const d = criarDataLocal(ano, mes, dia);
+        if(d.getMonth() !== mes) break;
+        const key = formatDateLocal(d);
+        if(dados[key]){
+          dados[key].forEach(item=>{
+            totalMes += Number(item.valor) || 0;
+            saidaMes += Number(item.saida) || 0;
+          });
+        }
+      }
+
+      totaisMesEl.textContent = `Total do Mês: R$ ${totalMes.toFixed(2)} | Saídas: R$ ${saidaMes.toFixed(2)} | Líquido: R$ ${(totalMes - saidaMes).toFixed(2)}`;
+    }
+
+    // Inicialização
+    (function init(){
+      mostrarCalendario();
+    })();
+  </script>
+</body>
+</html>
