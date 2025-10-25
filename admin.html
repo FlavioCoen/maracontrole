@@ -38,6 +38,16 @@
     button:hover {
       background: #218838;
     }
+    button:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+    .btn-test {
+      background: #17a2b8;
+    }
+    .btn-test:hover {
+      background: #138496;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -71,6 +81,7 @@
       padding: 15px;
       border-radius: 4px;
       margin: 10px 0;
+      border: 1px solid #f5c6cb;
     }
     .success {
       color: #155724;
@@ -78,6 +89,31 @@
       padding: 15px;
       border-radius: 4px;
       margin: 10px 0;
+      border: 1px solid #c3e6cb;
+    }
+    .info {
+      background: #d1ecf1;
+      color: #0c5460;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      border: 1px solid #bee5eb;
+    }
+    .warning {
+      background: #fff3cd;
+      color: #856404;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      border: 1px solid #ffeaa7;
+    }
+    #contador {
+      display: inline-block;
+      margin-left: 15px;
+      padding: 8px 15px;
+      background: #e9ecef;
+      border-radius: 4px;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -86,12 +122,14 @@
     <h2>📊 Visualização de Cadastros - Administração</h2>
     
     <div class="controls">
-      <button onclick="carregarDados()">🔄 Atualizar Dados</button>
+      <button onclick="carregarDados()" id="btnCarregar">🔄 Carregar Dados</button>
+      <button onclick="testarConexao()" class="btn-test" id="btnTestar">🔍 Testar Conexão</button>
+      <span id="contador"></span>
     </div>
 
     <div id="status"></div>
     
-    <table id="tabela">
+    <table id="tabela" style="display: none;">
       <thead>
         <tr>
           <th>Nome</th>
@@ -101,59 +139,82 @@
         </tr>
       </thead>
       <tbody id="tabela-body">
-        <!-- Os dados serão inseridos aqui via JavaScript -->
       </tbody>
     </table>
   </div>
 
   <script>
-    // URL do seu Web App do Google Apps Script
+    // NOVA URL CORRETA do seu Web App
     const scriptURL = "https://script.google.com/macros/s/AKfycbxLOv__TLmuVh9acviMMHt8oFbB8eo8ru9n3epkTVIEyPQJiBObgs8p2zlXWbJs4WhWDQ/exec";
 
     async function carregarDados() {
       const statusDiv = document.getElementById('status');
+      const tabela = document.getElementById('tabela');
       const tabelaBody = document.getElementById('tabela-body');
+      const btnCarregar = document.getElementById('btnCarregar');
+      const contadorSpan = document.getElementById('contador');
       
-      statusDiv.innerHTML = '<div class="loading">⏳ Carregando dados...</div>';
+      statusDiv.innerHTML = '<div class="loading">⏳ Conectando com o servidor...</div>';
       tabelaBody.innerHTML = '';
+      tabela.style.display = 'none';
+      btnCarregar.disabled = true;
+      contadorSpan.textContent = '';
 
       try {
-        console.log('🔍 Buscando dados da planilha...');
+        console.log('🔍 Iniciando requisição para:', scriptURL);
         
-        // Faz a requisição para o Google Apps Script
         const resposta = await fetch(scriptURL);
         
+        console.log('📡 Resposta recebida. Status:', resposta.status);
+        
         if (!resposta.ok) {
-          throw new Error(`Erro HTTP: ${resposta.status}`);
+          throw new Error(`Erro HTTP: ${resposta.status} ${resposta.statusText}`);
         }
         
         const dados = await resposta.json();
         console.log('✅ Dados recebidos:', dados);
         
-        if (!dados || dados.length <= 1) {
-          statusDiv.innerHTML = '<div class="success">📝 Nenhum cadastro encontrado.</div>';
+        if (!dados || dados.length === 0) {
+          statusDiv.innerHTML = '<div class="info">📝 A planilha está vazia.</div>';
           return;
         }
 
-        // Pula a primeira linha (cabeçalhos) e processa os dados
+        // Processa os dados
         let totalCadastros = 0;
+        
+        // Se há apenas cabeçalhos
+        if (dados.length === 1) {
+          statusDiv.innerHTML = '<div class="info">📝 Nenhum cadastro encontrado (apenas cabeçalhos).</div>';
+          return;
+        }
+
+        // Cria as linhas da tabela (pula a primeira linha - cabeçalhos)
         for (let i = 1; i < dados.length; i++) {
           const linha = dados[i];
           
-          // Verifica se a linha tem dados
-          if (linha[0] || linha[1] || linha[2] || linha[3]) {
+          // Verifica se a linha tem dados válidos
+          if (linha && linha.some(celula => celula !== null && celula !== undefined && celula.toString().trim() !== '')) {
             const tr = document.createElement('tr');
             
-            // Formata a data se existir
+            // Formata a data
             let dataFormatada = linha[3] || '';
             if (dataFormatada) {
               try {
-                const data = new Date(dataFormatada);
-                if (!isNaN(data.getTime())) {
-                  dataFormatada = data.toLocaleString('pt-BR');
+                // Tenta converter datas do Google Sheets
+                if (typeof dataFormatada === 'string' && dataFormatada.includes('Date(')) {
+                  const timestampMatch = dataFormatada.match(/Date\((\d+)/);
+                  if (timestampMatch) {
+                    const timestamp = parseInt(timestampMatch[1]);
+                    dataFormatada = new Date(timestamp).toLocaleString('pt-BR');
+                  }
+                } else {
+                  const data = new Date(dataFormatada);
+                  if (!isNaN(data.getTime())) {
+                    dataFormatada = data.toLocaleString('pt-BR');
+                  }
                 }
               } catch (e) {
-                // Mantém o valor original se não for possível formatar
+                console.log('Não foi possível formatar a data:', e);
               }
             }
             
@@ -169,29 +230,126 @@
           }
         }
         
-        statusDiv.innerHTML = `<div class="success">✅ ${totalCadastros} cadastro(s) carregado(s) com sucesso!</div>`;
+        if (totalCadastros > 0) {
+          tabela.style.display = 'table';
+          statusDiv.innerHTML = `<div class="success">✅ ${totalCadastros} cadastro(s) carregado(s) com sucesso!</div>`;
+          contadorSpan.textContent = `Total: ${totalCadastros}`;
+        } else {
+          statusDiv.innerHTML = '<div class="info">📝 Nenhum cadastro com dados válidos encontrado.</div>';
+        }
         
       } catch (err) {
-        console.error('❌ Erro:', err);
-        statusDiv.innerHTML = `<div class="error">❌ Erro ao carregar dados: ${err.message}</div>`;
+        console.error('💥 Erro detalhado:', err);
+        
+        if (err.message.includes('Failed to fetch')) {
+          statusDiv.innerHTML = `
+            <div class="error">🌐 Erro de conexão: Não foi possível conectar com o servidor.</div>
+            <div class="warning">
+              <strong>Possíveis causas:</strong><br>
+              • URL incorreta<br>
+              • Apps Script não implantado<br>
+              • Problema de rede<br>
+              • Bloqueio de CORS
+            </div>
+          `;
+        } else if (err.message.includes('JSON')) {
+          statusDiv.innerHTML = `
+            <div class="error">📄 Erro: A resposta não é JSON válido.</div>
+            <div class="info">
+              A função doGet() no Apps Script precisa retornar JSON.<br>
+              Verifique se a função foi atualizada e se foi feita uma NOVA implantação.
+            </div>
+          `;
+        } else {
+          statusDiv.innerHTML = `<div class="error">❌ Erro: ${err.message}</div>`;
+        }
+      } finally {
+        btnCarregar.disabled = false;
+      }
+    }
+
+    async function testarConexao() {
+      const statusDiv = document.getElementById('status');
+      statusDiv.innerHTML = '<div class="loading">🧪 Testando conexão com o servidor...</div>';
+      
+      try {
+        const startTime = Date.now();
+        const resposta = await fetch(scriptURL);
+        const endTime = Date.now();
+        const tempoResposta = endTime - startTime;
+        
+        const texto = await resposta.text();
+        
+        let mensagem = `
+          <div class="info">
+            <strong>🧪 Teste de Conexão - RESULTADO:</strong><br>
+            ✅ Conexão bem-sucedida!<br>
+            ⏱️ Tempo de resposta: ${tempoResposta}ms<br>
+            📊 Status HTTP: ${resposta.status}<br>
+        `;
+        
+        // Tenta verificar se é JSON
+        try {
+          const json = JSON.parse(texto);
+          mensagem += `📄 Tipo: JSON válido<br>`;
+          mensagem += `📋 Linhas de dados: ${json.length}<br>`;
+          if (json.length > 0) {
+            mensagem += `📍 Cabeçalhos: ${json[0].join(', ')}<br>`;
+          }
+        } catch (e) {
+          mensagem += `📄 Tipo: Texto (não é JSON)<br>`;
+          mensagem += `📝 Conteúdo: ${texto.substring(0, 100)}...<br>`;
+        }
+        
+        mensagem += `</div>`;
+        statusDiv.innerHTML = mensagem;
+        
+      } catch (err) {
+        statusDiv.innerHTML = `
+          <div class="error">
+            <strong>🧪 Teste de Conexão - FALHOU:</strong><br>
+            ❌ ${err.message}<br>
+            🔗 URL testada: ${scriptURL}
+          </div>
+        `;
       }
     }
 
     // Carrega os dados automaticamente quando a página abre
     document.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 Página carregada. URL:', scriptURL);
       carregarDados();
     });
 
-    // Teste rápido no console
-    window.testarConexao = async function() {
+    // Função global para debug
+    window.debugConexao = async function() {
+      console.log('=== DEBUG CONEXÃO ===');
+      console.log('🔗 URL:', scriptURL);
+      
       try {
+        const start = Date.now();
         const resposta = await fetch(scriptURL);
-        const dados = await resposta.json();
-        console.log('📊 Dados da planilha:', dados);
-        return dados;
-      } catch (error) {
-        console.error('💥 Erro:', error);
-        return error;
+        const end = Date.now();
+        
+        console.log('⏱️ Tempo:', (end - start) + 'ms');
+        console.log('📡 Status:', resposta.status, resposta.statusText);
+        console.log('🔒 CORS:', resposta.type);
+        
+        const texto = await resposta.text();
+        console.log('📄 Resposta (texto):', texto.substring(0, 500));
+        
+        try {
+          const json = JSON.parse(texto);
+          console.log('✅ JSON válido:', json);
+          console.log('📊 Estrutura:', Array.isArray(json) ? `Array com ${json.length} elementos` : typeof json);
+        } catch (e) {
+          console.log('❌ Não é JSON válido');
+        }
+        
+        return {success: true, tempo: end - start, status: resposta.status};
+      } catch (err) {
+        console.error('💥 Erro completo:', err);
+        return {success: false, error: err.message};
       }
     };
   </script>
