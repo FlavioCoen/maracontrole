@@ -1,119 +1,33 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel Admin - Cadastros</title>
-  <style>
-    body {
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: #f6f7fb;
-      color: #333;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background: #2a7ae4;
-      color: white;
-      text-align: center;
-      padding: 20px 0;
-      font-size: 1.5rem;
-      letter-spacing: 0.5px;
-    }
-    main {
-      max-width: 1000px;
-      margin: 40px auto;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      padding: 12px 15px;
-      border-bottom: 1px solid #e0e0e0;
-      text-align: left;
-    }
-    th {
-      background: #f0f2f8;
-      color: #333;
-    }
-    tr:hover {
-      background-color: #f9f9f9;
-    }
-    .loading {
-      text-align: center;
-      padding: 50px;
-      font-size: 1.1rem;
-      color: #666;
-    }
-  </style>
-</head>
-<body>
-  <header>Painel Administrativo - Cadastros</header>
-  <main>
-    <div id="conteudo" class="loading">Carregando cadastros...</div>
-    <table id="tabela" style="display:none;">
-      <thead>
-        <tr id="cabecalho"></tr>
-      </thead>
-      <tbody id="corpo"></tbody>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body>
+    <h2>Lista de Cadastros</h2>
+    <table border="1" id="tabela">
+      <tr>
+        <th>Nome</th>
+        <th>Email</th>
+        <th>Telefone</th>
+        <th>DataCadastro</th>
+      </tr>
     </table>
-  </main>
 
-  <script>
-    // 🔗 URL do seu Apps Script (endpoint publicado que aceita POST)
-    const url = "https://script.google.com/macros/s/AKfycbxLOv__TLmuVh9acviMMHt8oFbB8eo8ru9n3epkTVIEyPQJiBObgs8p2zlXWbJs4WhWDQ/exec";
-
-    // 🔍 Requisição POST para buscar os cadastros
-    fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ acao: "listar" }) // corpo simples para identificar ação
-    })
-      .then(res => res.json())
-      .then(data => {
-        const conteudo = document.getElementById("conteudo");
-        const tabela = document.getElementById("tabela");
-        const cabecalho = document.getElementById("cabecalho");
-        const corpo = document.getElementById("corpo");
-
-        if (!data || data.length === 0) {
-          conteudo.textContent = "Nenhum cadastro encontrado.";
-          return;
-        }
-
-        conteudo.style.display = "none";
-        tabela.style.display = "table";
-
-        // Cabeçalho dinâmico
-        const headers = Object.keys(data[0]);
-        headers.forEach(h => {
-          const th = document.createElement("th");
-          th.textContent = h;
-          cabecalho.appendChild(th);
+    <script>
+      // Chama o Apps Script para obter os dados
+      google.script.run.withSuccessHandler(function(dados){
+        var tabela = document.getElementById('tabela');
+        dados.forEach(function(linha){
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + linha.Nome + '</td>' +
+                         '<td>' + linha.Email + '</td>' +
+                         '<td>' + linha.Telefone + '</td>' +
+                         '<td>' + linha.DataCadastro + '</td>';
+          tabela.appendChild(tr);
         });
-
-        // Linhas da tabela
-        data.forEach(item => {
-          const tr = document.createElement("tr");
-          headers.forEach(h => {
-            const td = document.createElement("td");
-            td.textContent = item[h];
-            tr.appendChild(td);
-          });
-          corpo.appendChild(tr);
-        });
-      })
-      .catch(err => {
-        console.error("Erro ao carregar:", err);
-        document.getElementById("conteudo").textContent =
-          "Erro ao carregar cadastros. Verifique o link do script.";
-      });
-  </script>
-</body>
+      }).getDados();
+    </script>
+  </body>
 </html>
+
