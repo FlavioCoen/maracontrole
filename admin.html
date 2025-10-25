@@ -2,54 +2,113 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Admin - Lista de Cadastros</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Admin - Cadastros</title>
   <style>
-    body { font-family: Arial; margin: 40px; background: #f7f7f7; }
-    h2 { color: #333; }
-    button { padding: 10px 20px; margin-bottom: 20px; border: none; background: #007bff; color: white; border-radius: 5px; cursor: pointer; }
-    button:hover { background: #0056b3; }
-    table { border-collapse: collapse; width: 100%; background: white; box-shadow: 0 0 5px #ccc; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background: #eaeaea; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f6f7fb;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #2a7ae4;
+      color: white;
+      text-align: center;
+      padding: 20px 0;
+      font-size: 1.5rem;
+      letter-spacing: 0.5px;
+    }
+    main {
+      max-width: 1000px;
+      margin: 40px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #e0e0e0;
+      text-align: left;
+    }
+    th {
+      background: #f0f2f8;
+      color: #333;
+    }
+    tr:hover {
+      background-color: #f9f9f9;
+    }
+    .loading {
+      text-align: center;
+      padding: 50px;
+      font-size: 1.1rem;
+      color: #666;
+    }
   </style>
 </head>
 <body>
-  <h2>Painel Admin - Cadastros</h2>
-  <button onclick="carregar()">Atualizar Lista</button>
-  <table id="tabela">
-    <thead>
-      <tr><th>Nome</th><th>Email</th><th>Telefone</th><th>Data</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <header>Painel Administrativo - Cadastros</header>
+  <main>
+    <div id="conteudo" class="loading">Carregando cadastros...</div>
+    <table id="tabela" style="display:none;">
+      <thead>
+        <tr id="cabecalho"></tr>
+      </thead>
+      <tbody id="corpo"></tbody>
+    </table>
+  </main>
 
   <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbxF-hyBhw32r_F9i0Suwx5KTZytfj6uBnaWJGfa-X-t1cFgztUa0_IeQTN9pkcvx9LWmQ/exec";
+    const url = "https://script.google.com/macros/s/AKfycbxQaFE6rjKk_N-IyOXx7ir_dcJD1yUnDiEihUVBkqxIpLWdBguPgcq4hGlHWBwQ8wWVRw/exec";
 
-    async function carregar() {
-      try {
-        const resp = await fetch(scriptURL);
-        const dados = await resp.json();
-        const tbody = document.querySelector("#tabela tbody");
-        tbody.innerHTML = "";
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        const conteudo = document.getElementById("conteudo");
+        const tabela = document.getElementById("tabela");
+        const cabecalho = document.getElementById("cabecalho");
+        const corpo = document.getElementById("corpo");
 
-        dados.forEach(item => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${item.nome}</td>
-            <td>${item.email}</td>
-            <td>${item.telefone}</td>
-            <td>${new Date(item.dataCadastro).toLocaleString()}</td>
-          `;
-          tbody.appendChild(tr);
+        if (!data || data.length === 0) {
+          conteudo.textContent = "Nenhum cadastro encontrado.";
+          return;
+        }
+
+        // Remove o texto de carregamento e mostra a tabela
+        conteudo.style.display = "none";
+        tabela.style.display = "table";
+
+        // Cabeçalho
+        const headers = Object.keys(data[0]);
+        headers.forEach(h => {
+          const th = document.createElement("th");
+          th.textContent = h;
+          cabecalho.appendChild(th);
         });
-      } catch (err) {
-        alert("Erro ao carregar dados. Verifique a conexão ou o link do script.");
-      }
-    }
 
-    // Carrega automaticamente ao abrir
-    carregar();
+        // Linhas
+        data.forEach(item => {
+          const tr = document.createElement("tr");
+          headers.forEach(h => {
+            const td = document.createElement("td");
+            td.textContent = item[h];
+            tr.appendChild(td);
+          });
+          corpo.appendChild(tr);
+        });
+      })
+      .catch(err => {
+        console.error("Erro ao carregar:", err);
+        document.getElementById("conteudo").textContent =
+          "Erro ao carregar cadastros. Verifique o link do script.";
+      });
   </script>
 </body>
 </html>
