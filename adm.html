@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Visualizar Cadastros</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <h2>Cadastros Realizados</h2>
+  <button onclick="carregarDados()">Atualizar Dados</button>
+  <div id="dados"></div>
+
+  <script>
+    const scriptURL = "https://script.google.com/macros/s/AKfycbz64noJUVy0dA7NvnKKUeW62LsLFAEeEqqZbAYex1UDFMPUn2BCOYlFIHGMNetoOsZFJg/exec";
+
+    async function carregarDados() {
+      try {
+        const resposta = await fetch(scriptURL);
+        const dados = await resposta.json();
+        
+        let html = '<table>';
+        html += '<tr><th>Data/Hora</th><th>Nome</th><th>Email</th><th>Telefone</th></tr>';
+        
+        dados.forEach((linha, index) => {
+          if (index > 0) { // Pular cabeçalho se houver
+            html += `<tr>
+              <td>${linha[0] || ''}</td>
+              <td>${linha[1] || ''}</td>
+              <td>${linha[2] || ''}</td>
+              <td>${linha[3] || ''}</td>
+            </tr>`;
+          }
+        });
+        
+        html += '</table>';
+        document.getElementById('dados').innerHTML = html;
+        
+      } catch (err) {
+        document.getElementById('dados').innerHTML = 'Erro ao carregar dados: ' + err.message;
+      }
+    }
+
+    // Carregar dados automaticamente ao abrir a página
+    carregarDados();
+  </script>
+</body>
+</html>
