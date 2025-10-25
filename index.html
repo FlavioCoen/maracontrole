@@ -13,6 +13,7 @@
     #mensagem { margin-top: 15px; padding: 10px; border-radius: 4px; }
     .sucesso { color: green; background: #d4edda; border: 1px solid #c3e6cb; }
     .erro { color: #721c24; background: #f8d7da; border: 1px solid #f5c6cb; }
+    .carregando { color: #856404; background: #fff3cd; border: 1px solid #ffeaa7; }
   </style>
 </head>
 <body>
@@ -27,21 +28,32 @@
   <div id="mensagem"></div>
 
   <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbz64noJUVy0dA7NvnKKUeW62LsLFAEeEqqZbAYex1UDFMPUn2BCOYlFIHGMNetoOsZFJg/exec";
+    // NOVA URL - Use esta!
+    const scriptURL = "https://script.google.com/macros/s/AKfycbxQaFE6rjKk_N-IyOXx7ir_dcJD1yUnDiEihUVBkqxIpLWdBguPgcq4hGlHWBwQ8wWVRw/exec";
 
     document.getElementById("formCadastro").addEventListener("submit", async (e) => {
       e.preventDefault();
 
       const mensagemDiv = document.getElementById("mensagem");
       mensagemDiv.textContent = "Enviando dados...";
-      mensagemDiv.className = "";
+      mensagemDiv.className = "carregando";
+
+      // Desabilita o botão para evitar múltiplos envios
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
 
       try {
-        // Usando FormData que é mais compatível com Google Apps Script
         const formData = new FormData();
-        formData.append("nome", document.getElementById("nome").value);
-        formData.append("email", document.getElementById("email").value);
-        formData.append("telefone", document.getElementById("telefone").value);
+        formData.append("nome", document.getElementById("nome").value.trim());
+        formData.append("email", document.getElementById("email").value.trim());
+        formData.append("telefone", document.getElementById("telefone").value.trim());
+
+        console.log("Enviando para:", scriptURL);
+        console.log("Dados:", {
+          nome: document.getElementById("nome").value,
+          email: document.getElementById("email").value,
+          telefone: document.getElementById("telefone").value
+        });
 
         const resposta = await fetch(scriptURL, {
           method: "POST",
@@ -49,18 +61,37 @@
         });
 
         const resultado = await resposta.text();
+        console.log("Resposta completa:", resposta);
+        console.log("Resultado:", resultado);
         
-        mensagemDiv.textContent = resultado;
-        mensagemDiv.className = "sucesso";
-        
-        e.target.reset();
+        if (resposta.ok) {
+          mensagemDiv.textContent = "✓ " + resultado;
+          mensagemDiv.className = "sucesso";
+          e.target.reset();
+        } else {
+          throw new Error(resultado || "Erro na requisição");
+        }
         
       } catch (err) {
         console.error("Erro detalhado:", err);
-        mensagemDiv.textContent = "Erro ao enviar dados: " + err.message;
+        mensagemDiv.textContent = "❌ Erro: " + err.message;
         mensagemDiv.className = "erro";
+      } finally {
+        btn.disabled = false;
       }
     });
+
+    // Teste de conexão simples
+    async function testarConexao() {
+      try {
+        const resposta = await fetch(scriptURL);
+        console.log("Teste conexão - Status:", resposta.status);
+        console.log("Teste conexão - Texto:", await resposta.text());
+      } catch (err) {
+        console.error("Teste conexão - Erro:", err);
+      }
+    }
+    testarConexao();
   </script>
 </body>
 </html>
