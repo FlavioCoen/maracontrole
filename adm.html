@@ -33,9 +33,20 @@
       border-radius: 4px;
       cursor: pointer;
       font-size: 16px;
+      margin: 0 5px;
     }
     button:hover {
       background: #218838;
+    }
+    button:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+    .btn-export {
+      background: #17a2b8;
+    }
+    .btn-export:hover {
+      background: #138496;
     }
     table {
       width: 100%;
@@ -62,20 +73,23 @@
       text-align: center;
       color: #666;
       font-style: italic;
+      padding: 20px;
     }
     .error {
       color: #dc3545;
       background: #f8d7da;
-      padding: 10px;
+      padding: 15px;
       border-radius: 4px;
       margin: 10px 0;
+      border: 1px solid #f5c6cb;
     }
     .success {
       color: #155724;
       background: #d4edda;
-      padding: 10px;
+      padding: 15px;
       border-radius: 4px;
       margin: 10px 0;
+      border: 1px solid #c3e6cb;
     }
     .info {
       background: #d1ecf1;
@@ -83,6 +97,29 @@
       padding: 10px;
       border-radius: 4px;
       margin: 10px 0;
+      border: 1px solid #bee5eb;
+    }
+    .warning {
+      background: #fff3cd;
+      color: #856404;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      border: 1px solid #ffeaa7;
+    }
+    #contador {
+      display: inline-block;
+      margin-left: 15px;
+      padding: 8px 15px;
+      background: #e9ecef;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .timestamp {
+      font-size: 12px;
+      color: #6c757d;
+      text-align: right;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -91,13 +128,14 @@
     <h2>📊 Visualização de Cadastros - Administração</h2>
     
     <div class="controls">
-      <button onclick="carregarDados()">🔄 Atualizar Dados</button>
-      <button onclick="exportarCSV()">📥 Exportar CSV</button>
-      <span id="contador" class="info"></span>
+      <button onclick="carregarDados()" id="btnAtualizar">🔄 Atualizar Dados</button>
+      <button onclick="exportarCSV()" class="btn-export" id="btnExportar">📥 Exportar CSV</button>
+      <span id="contador"></span>
     </div>
 
     <div id="status"></div>
     <div id="dados"></div>
+    <div class="timestamp" id="timestamp"></div>
   </div>
 
   <script>
@@ -107,24 +145,43 @@
       const statusDiv = document.getElementById('status');
       const dadosDiv = document.getElementById('dados');
       const contadorSpan = document.getElementById('contador');
+      const btnAtualizar = document.getElementById('btnAtualizar');
+      const btnExportar = document.getElementById('btnExportar');
+      const timestampDiv = document.getElementById('timestamp');
       
       statusDiv.innerHTML = '<div class="loading">⏳ Carregando dados...</div>';
       dadosDiv.innerHTML = '';
+      btnAtualizar.disabled = true;
+      btnExportar.disabled = true;
 
       try {
-        console.log('Iniciando carregamento de dados...');
+        console.log('🔍 Iniciando carregamento de dados...');
         
         const resposta = await fetch(scriptURL);
-        console.log('Resposta recebida:', resposta);
+        console.log('📡 Status da resposta:', resposta.status, resposta.statusText);
         
-        if (!resposta.ok) {
-          throw new Error(`Erro HTTP: ${resposta.status}`);
+        const textoResposta = await resposta.text();
+        console.log('📄 Texto da resposta:', textoResposta);
+        
+        // Tenta fazer parse do JSON
+        let dados;
+        try {
+          dados = JSON.parse(textoResposta);
+        } catch (parseError) {
+          console.error('❌ Erro no parse JSON:', parseError);
+          throw new Error(`Resposta não é JSON válido: ${textoResposta.substring(0, 100)}...`);
         }
         
-        const dados = await resposta.json();
-        console.log('Dados recebidos:', dados);
+        console.log('✅ Dados parseados:', dados);
         
-        if (!dados || dados.length === 0) {
+        // Verifica a estrutura dos dados
+        if (dados.success === false) {
+          throw new Error(dados.error || 'Erro no servidor');
+        }
+        
+        const dadosArray = dados.data || dados;
+        
+        if (!dadosArray || dadosArray.length === 0) {
           statusDiv.innerHTML = '<div class="info">📝 Nenhum cadastro encontrado.</div>';
           contadorSpan.textContent = 'Total: 0 cadastros';
           return;
@@ -135,30 +192,57 @@
         html += '<thead><tr>';
         
         // Cabeçalhos (primeira linha)
-        dados[0].forEach(cabecalho => {
-          html += `<th>${cabecalho || 'Coluna'}</th>`;
-        });
+        if (dadosArray.length > 0) {
+          dadosArray[0].forEach((cabecalho, index) => {
+            const cabecalhosPadrao = ['Nome', 'Email', 'Telefone', 'DataCadastro'];
+            const nomeCabecalho = cabecalho && cabecalho.toString().trim() !== '' ? cabecalho : cabecalhosPadrao[index] || `Coluna ${index + 1}`;
+            html += `<th>${nomeCabecalho}</th>`;
+          });
+        }
         html += '</tr></thead><tbody>';
         
         // Dados (linhas seguintes)
-        for (let i = 1; i < dados.length; i++) {
-          html += '<tr>';
-          dados[i].forEach(celula => {
-            html += `<td>${celula || ''}</td>`;
-          });
-          html += '</tr>';
+        let totalCadastros = 0;
+        for (let i = 1; i < dadosArray.length; i++) {
+          if (dadosArray[i].some(celula => celula !== '' && celula !== null && celula !== undefined)) {
+            html += '<tr>';
+            dadosArray[i].forEach(celula => {
+              // Formata datas
+              let valor = celula || '';
+              if (valor instanceof Date || (typeof valor === 'string' && valor.includes('Date'))) {
+                try {
+                  valor = new Date(valor).toLocaleString('pt-BR');
+                } catch (e) {
+                  // Mantém o valor original se não for possível converter
+                }
+              }
+              html += `<td>${valor}</td>`;
+            });
+            html += '</tr>';
+            totalCadastros++;
+          }
         }
         
         html += '</tbody></table>';
         
         dadosDiv.innerHTML = html;
-        statusDiv.innerHTML = `<div class="success">✅ Dados carregados com sucesso! ${dados.length - 1} cadastro(s) encontrado(s).</div>`;
-        contadorSpan.textContent = `Total: ${dados.length - 1} cadastro(s)`;
+        statusDiv.innerHTML = `<div class="success">✅ Dados carregados com sucesso! ${totalCadastros} cadastro(s) encontrado(s).</div>`;
+        contadorSpan.textContent = `Total: ${totalCadastros} cadastro(s)`;
+        timestampDiv.textContent = `Última atualização: ${new Date().toLocaleString('pt-BR')}`;
         
       } catch (err) {
-        console.error('Erro detalhado:', err);
+        console.error('💥 Erro detalhado:', err);
         statusDiv.innerHTML = `<div class="error">❌ Erro ao carregar dados: ${err.message}</div>`;
         contadorSpan.textContent = '';
+        timestampDiv.textContent = '';
+        
+        // Sugestão de solução
+        if (err.message.includes('JSON válido')) {
+          statusDiv.innerHTML += `<div class="warning">💡 Dica: A função doGet() pode não estar retornando JSON. Verifique se a função doGet() no Apps Script foi atualizada e se uma nova implantação foi feita.</div>`;
+        }
+      } finally {
+        btnAtualizar.disabled = false;
+        btnExportar.disabled = false;
       }
     }
 
@@ -174,9 +258,10 @@
       
       linhas.forEach(linha => {
         const colunas = linha.querySelectorAll('th, td');
-        const linhaArray = Array.from(colunas).map(coluna => 
-          `"${coluna.textContent.replace(/"/g, '""')}"`
-        );
+        const linhaArray = Array.from(colunas).map(coluna => {
+          let texto = coluna.textContent.replace(/"/g, '""');
+          return `"${texto}"`;
+        });
         csv.push(linhaArray.join(','));
       });
       
@@ -186,7 +271,7 @@
       const url = URL.createObjectURL(blob);
       
       link.setAttribute('href', url);
-      link.setAttribute('download', 'cadastros.csv');
+      link.setAttribute('download', `cadastros_${new Date().toISOString().split('T')[0]}.csv`);
       link.style.visibility = 'hidden';
       
       document.body.appendChild(link);
@@ -196,12 +281,33 @@
 
     // Carregar dados automaticamente ao abrir a página
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('Página carregada, iniciando carregamento de dados...');
+      console.log('🚀 Página carregada, iniciando carregamento de dados...');
       carregarDados();
     });
 
-    // Recarregar a cada 30 segundos (opcional)
-    setInterval(carregarDados, 30000);
+    // Recarregar a cada 60 segundos (opcional)
+    setInterval(carregarDados, 60000);
+
+    // Teste de conexão direta (para debug)
+    window.testarConexao = async function() {
+      console.log('🧪 Testando conexão com a API...');
+      try {
+        const resposta = await fetch(scriptURL);
+        const texto = await resposta.text();
+        console.log('📡 Resposta bruta:', texto);
+        try {
+          const json = JSON.parse(texto);
+          console.log('✅ JSON parseado:', json);
+          return json;
+        } catch(e) {
+          console.log('❌ Não é JSON válido:', e.message);
+          return texto;
+        }
+      } catch (error) {
+        console.error('💥 Erro na conexão:', error);
+        return error;
+      }
+    };
   </script>
 </body>
 </html>
