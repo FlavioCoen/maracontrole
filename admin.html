@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin - Lista de Cadastros</title>
+  <style>
+    body { font-family: Arial; margin: 40px; background: #f7f7f7; }
+    h2 { color: #333; }
+    button { padding: 10px 20px; margin-bottom: 20px; border: none; background: #007bff; color: white; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    table { border-collapse: collapse; width: 100%; background: white; box-shadow: 0 0 5px #ccc; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #eaeaea; }
+  </style>
+</head>
+<body>
+  <h2>Painel Admin - Cadastros</h2>
+  <button onclick="carregar()">Atualizar Lista</button>
+  <table id="tabela">
+    <thead>
+      <tr><th>Nome</th><th>Email</th><th>Telefone</th><th>Data</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const scriptURL = "https://script.google.com/macros/s/AKfycbxF-hyBhw32r_F9i0Suwx5KTZytfj6uBnaWJGfa-X-t1cFgztUa0_IeQTN9pkcvx9LWmQ/exec";
+
+    async function carregar() {
+      try {
+        const resp = await fetch(scriptURL);
+        const dados = await resp.json();
+        const tbody = document.querySelector("#tabela tbody");
+        tbody.innerHTML = "";
+
+        dados.forEach(item => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${item.nome}</td>
+            <td>${item.email}</td>
+            <td>${item.telefone}</td>
+            <td>${new Date(item.dataCadastro).toLocaleString()}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        alert("Erro ao carregar dados. Verifique a conexão ou o link do script.");
+      }
+    }
+
+    // Carrega automaticamente ao abrir
+    carregar();
+  </script>
+</body>
+</html>
