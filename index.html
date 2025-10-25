@@ -25,10 +25,12 @@
   <p id="mensagem"></p>
 
   <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbxF-hyBhw32r_F9i0Suwx5KTZytfj6uBnaWJGfa-X-t1cFgztUa0_IeQTN9pkcvx9LWmQ/exec";
+    // Nova URL do Web App
+    const scriptURL = "https://script.google.com/macros/s/AKfycbz64noJUVy0dA7NvnKKUeW62LsLFAEeEqqZbAYex1UDFMPUn2BCOYlFIHGMNetoOsZFJg/exec";
 
     document.getElementById("formCadastro").addEventListener("submit", async (e) => {
       e.preventDefault();
+
       const data = {
         nome: document.getElementById("nome").value,
         email: document.getElementById("email").value,
