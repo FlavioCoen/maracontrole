@@ -160,8 +160,17 @@
         const resposta = await fetch(scriptURL);
         console.log('📡 Status da resposta:', resposta.status, resposta.statusText);
         
+        if (!resposta.ok) {
+          throw new Error(`Erro HTTP: ${resposta.status} ${resposta.statusText}`);
+        }
+        
         const textoResposta = await resposta.text();
         console.log('📄 Texto da resposta:', textoResposta);
+        
+        // Verifica se é a mensagem antiga
+        if (textoResposta.includes('API funcionando! Use POST')) {
+          throw new Error('A função doGet() não foi atualizada. Faça uma NOVA implantação no Apps Script.');
+        }
         
         // Tenta fazer parse do JSON
         let dados;
@@ -169,21 +178,27 @@
           dados = JSON.parse(textoResposta);
         } catch (parseError) {
           console.error('❌ Erro no parse JSON:', parseError);
-          throw new Error(`Resposta não é JSON válido: ${textoResposta.substring(0, 100)}...`);
+          throw new Error(`Resposta não é JSON válido. Resposta recebida: "${textoResposta.substring(0, 100)}..."`);
         }
         
         console.log('✅ Dados parseados:', dados);
         
-        // Verifica a estrutura dos dados
-        if (dados.success === false) {
-          throw new Error(dados.error || 'Erro no servidor');
+        // Dados podem ser array direto ou objeto com propriedade data
+        let dadosArray;
+        if (Array.isArray(dados)) {
+          dadosArray = dados;
+        } else if (dados && dados.data && Array.isArray(dados.data)) {
+          dadosArray = dados.data;
+        } else if (dados && dados.error) {
+          throw new Error(`Erro do servidor: ${dados.error}`);
+        } else {
+          throw new Error('Formato de dados inválido recebido do servidor');
         }
         
-        const dadosArray = dados.data || dados;
-        
-        if (!dadosArray || dadosArray.length === 0) {
-          statusDiv.innerHTML = '<div class="info">📝 Nenhum cadastro encontrado.</div>';
+        if (!dadosArray || dadosArray.length === 0 || (dadosArray.length === 1 && dadosArray[0].every(cell => !cell || cell === ''))) {
+          statusDiv.innerHTML = '<div class="info">📝 Nenhum cadastro encontrado na planilha.</div>';
           contadorSpan.textContent = 'Total: 0 cadastros';
+          timestampDiv.textContent = `Última atualização: ${new Date().toLocaleString('pt-BR')}`;
           return;
         }
 
@@ -204,18 +219,40 @@
         // Dados (linhas seguintes)
         let totalCadastros = 0;
         for (let i = 1; i < dadosArray.length; i++) {
-          if (dadosArray[i].some(celula => celula !== '' && celula !== null && celula !== undefined)) {
+          if (dadosArray[i] && Array.isArray(dadosArray[i]) && dadosArray[i].some(celula => 
+            celula !== '' && celula !== null && celula !== undefined && celula.toString().trim() !== ''
+          )) {
             html += '<tr>';
             dadosArray[i].forEach(celula => {
-              // Formata datas
               let valor = celula || '';
-              if (valor instanceof Date || (typeof valor === 'string' && valor.includes('Date'))) {
-                try {
-                  valor = new Date(valor).toLocaleString('pt-BR');
-                } catch (e) {
-                  // Mantém o valor original se não for possível converter
+              
+              // Tenta formatar datas
+              if (valor) {
+                // Se for um objeto de data do Google Sheets
+                if (typeof valor === 'string' && valor.includes('Date(')) {
+                  try {
+                    const match = valor.match(/Date\((\d+)/);
+                    if (match) {
+                      const timestamp = parseInt(match[1]);
+                      valor = new Date(timestamp).toLocaleString('pt-BR');
+                    }
+                  } catch (e) {
+                    // Mantém o valor original se não for possível converter
+                  }
+                }
+                // Se for uma string de data reconhecível
+                else if (typeof valor === 'string' && /(\d{4}-\d{2}-\d{2})|(\d{2}\/\d{2}\/\d{4})/.test(valor)) {
+                  try {
+                    const data = new Date(valor);
+                    if (!isNaN(data.getTime())) {
+                      valor = data.toLocaleString('pt-BR');
+                    }
+                  } catch (e) {
+                    // Mantém o valor original
+                  }
                 }
               }
+              
               html += `<td>${valor}</td>`;
             });
             html += '</tr>';
@@ -232,13 +269,22 @@
         
       } catch (err) {
         console.error('💥 Erro detalhado:', err);
-        statusDiv.innerHTML = `<div class="error">❌ Erro ao carregar dados: ${err.message}</div>`;
+        statusDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
         contadorSpan.textContent = '';
         timestampDiv.textContent = '';
         
-        // Sugestão de solução
-        if (err.message.includes('JSON válido')) {
-          statusDiv.innerHTML += `<div class="warning">💡 Dica: A função doGet() pode não estar retornando JSON. Verifique se a função doGet() no Apps Script foi atualizada e se uma nova implantação foi feita.</div>`;
+        // Instruções específicas para erros comuns
+        if (err.message.includes('não foi atualizada') || err.message.includes('JSON válido')) {
+          statusDiv.innerHTML += `
+            <div class="warning">
+              <strong>🔧 Como corrigir no Google Apps Script:</strong><br>
+              1. Vá no Google Apps Script<br>
+              2. Substitua a função doGet() pelo código correto<br>
+              3. <strong>Vá em Implantar → Nova implantação</strong><br>
+              4. Selecione "Nova versão" e clique "Implantar"<br>
+              5. Teste novamente esta página
+            </div>
+          `;
         }
       } finally {
         btnAtualizar.disabled = false;
@@ -249,7 +295,7 @@
     function exportarCSV() {
       const tabela = document.querySelector('table');
       if (!tabela) {
-        alert('Primeiro carregue os dados!');
+        alert('Primeiro carregue os dados clicando em "Atualizar Dados"!');
         return;
       }
       
@@ -285,8 +331,8 @@
       carregarDados();
     });
 
-    // Recarregar a cada 60 segundos (opcional)
-    setInterval(carregarDados, 60000);
+    // Recarregar a cada 30 segundos (opcional)
+    setInterval(carregarDados, 30000);
 
     // Teste de conexão direta (para debug)
     window.testarConexao = async function() {
@@ -301,12 +347,18 @@
           return json;
         } catch(e) {
           console.log('❌ Não é JSON válido:', e.message);
+          console.log('📄 Conteúdo recebido:', texto);
           return texto;
         }
       } catch (error) {
         console.error('💥 Erro na conexão:', error);
         return error;
       }
+    };
+
+    // Função para forçar atualização
+    window.recarregar = function() {
+      carregarDados();
     };
   </script>
 </body>
