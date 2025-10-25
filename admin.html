@@ -66,9 +66,15 @@
   </main>
 
   <script>
+    // 🔗 URL do seu Apps Script (endpoint publicado que aceita POST)
     const url = "https://script.google.com/macros/s/AKfycbxQaFE6rjKk_N-IyOXx7ir_dcJD1yUnDiEihUVBkqxIpLWdBguPgcq4hGlHWBwQ8wWVRw/exec";
 
-    fetch(url)
+    // 🔍 Requisição POST para buscar os cadastros
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ acao: "listar" }) // corpo simples para identificar ação
+    })
       .then(res => res.json())
       .then(data => {
         const conteudo = document.getElementById("conteudo");
@@ -81,11 +87,10 @@
           return;
         }
 
-        // Remove o texto de carregamento e mostra a tabela
         conteudo.style.display = "none";
         tabela.style.display = "table";
 
-        // Cabeçalho
+        // Cabeçalho dinâmico
         const headers = Object.keys(data[0]);
         headers.forEach(h => {
           const th = document.createElement("th");
@@ -93,7 +98,7 @@
           cabecalho.appendChild(th);
         });
 
-        // Linhas
+        // Linhas da tabela
         data.forEach(item => {
           const tr = document.createElement("tr");
           headers.forEach(h => {
