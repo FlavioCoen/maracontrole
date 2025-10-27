@@ -1,12 +1,100 @@
-// Teste rápido
-fetch("https://script.google.com/macros/s/AKfycbxQaFE6rjKk_N-IyOXx7ir_dcJD1yUnDiEihUVBkqxIpLWdBguPgcq4hGlHWBwQ8wWVRw/exec")
-  .then(r => r.text())
-  .then(t => {
-    console.log("Resposta:", t);
-    try {
-      JSON.parse(t);
-      console.log("✅ AGORA É JSON VÁLIDO!");
-    } catch(e) {
-      console.log("❌ Ainda não é JSON:", t.substring(0, 50));
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin - Lista de Cadastros</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #f7f7f7;
     }
-  });
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      margin-top: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    #atualizar {
+      display: block;
+      margin: 20px auto;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #atualizar:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lista de Cadastros</h1>
+
+  <button id="atualizar">🔄 Atualizar Dados</button>
+
+  <table id="tabela">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Email</th>
+        <th>Telefone</th>
+        <th>Data de Cadastro</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const url = 'https://script.google.com/macros/s/AKfycbwY9umijTV6J08iECdfRmLDYMaUwNSgpelxYGEc-S-xnsMqAeuYQ4Xa9dJw5EUFftnFwA/exec';
+
+    async function carregarDados() {
+      try {
+        const resposta = await fetch(url);
+        const data = await resposta.json();
+        const tbody = document.querySelector('#tabela tbody');
+        tbody.innerHTML = '';
+
+        data.forEach(item => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${item.Nome || ''}</td>
+            <td>${item.Email || ''}</td>
+            <td>${item.Telefone || ''}</td>
+            <td>${item.DataCadastro || ''}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (error) {
+        console.error('Erro ao buscar dados:', error);
+        alert('Erro ao carregar os dados da planilha.');
+      }
+    }
+
+    document.getElementById('atualizar').addEventListener('click', carregarDados);
+
+    // Carrega automaticamente ao abrir a página
+    carregarDados();
+  </script>
+</body>
+</html>
