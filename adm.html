@@ -2,28 +2,69 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Lista de Cadastros</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 40px;
+      margin: 0;
       background-color: #f7f7f7;
+    }
+
+    /* Tela de login */
+    #login-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #007bff;
+      color: white;
+    }
+    #login-container input {
+      padding: 10px;
+      font-size: 16px;
+      margin: 10px;
+      border: none;
+      border-radius: 6px;
+      width: 200px;
+    }
+    #login-container button {
+      padding: 10px 20px;
+      background-color: #fff;
+      color: #007bff;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #login-container button:hover {
+      background-color: #e6e6e6;
+    }
+
+    /* Conteúdo principal */
+    #content {
+      display: none;
+      padding: 20px;
+      max-width: 1200px;
+      margin: auto;
     }
     h1 {
       text-align: center;
       color: #333;
+      margin-bottom: 20px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       background-color: white;
-      margin-top: 20px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
     th, td {
       border: 1px solid #ccc;
       padding: 10px;
       text-align: left;
+      font-size: 14px;
     }
     th {
       background-color: #007bff;
@@ -34,7 +75,7 @@
     }
     #atualizar {
       display: block;
-      margin: 20px auto;
+      margin: 15px auto;
       background-color: #007bff;
       color: white;
       border: none;
@@ -46,27 +87,80 @@
     #atualizar:hover {
       background-color: #0056b3;
     }
+
+    /* Responsividade */
+    @media (max-width: 768px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      thead tr {
+        display: none;
+      }
+      tr {
+        margin-bottom: 15px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      td {
+        border: none;
+        position: relative;
+        padding-left: 50%;
+        text-align: right;
+      }
+      td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        width: 45%;
+        text-align: left;
+        font-weight: bold;
+        color: #007bff;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>Lista de Cadastros</h1>
+  <!-- Tela de login -->
+  <div id="login-container">
+    <h2>Acesso Restrito</h2>
+    <input type="password" id="senha" placeholder="Digite a senha">
+    <button onclick="verificarSenha()">Entrar</button>
+    <p style="font-size: 14px; opacity: 0.8;">Senha: Fmc180518</p>
+  </div>
 
-  <button id="atualizar">🔄 Atualizar Dados</button>
+  <!-- Conteúdo principal -->
+  <div id="content">
+    <h1>Lista de Cadastros</h1>
+    <button id="atualizar">🔄 Atualizar Dados</button>
 
-  <table id="tabela">
-    <thead>
-      <tr>
-        <th>Nome</th>
-        <th>Email</th>
-        <th>Telefone</th>
-        <th>Data de Cadastro</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <table id="tabela">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Email</th>
+          <th>Telefone</th>
+          <th>Data de Cadastro</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
   <script>
     const url = 'https://script.google.com/macros/s/AKfycbwY9umijTV6J08iECdfRmLDYMaUwNSgpelxYGEc-S-xnsMqAeuYQ4Xa9dJw5EUFftnFwA/exec';
+    const senhaCorreta = 'Fmc180518';
+
+    function verificarSenha() {
+      const senha = document.getElementById('senha').value;
+      if (senha === senhaCorreta) {
+        document.getElementById('login-container').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+        carregarDados();
+      } else {
+        alert('Senha incorreta!');
+      }
+    }
 
     async function carregarDados() {
       try {
@@ -78,10 +172,10 @@
         data.forEach(item => {
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td>${item.Nome || ''}</td>
-            <td>${item.Email || ''}</td>
-            <td>${item.Telefone || ''}</td>
-            <td>${item.DataCadastro || ''}</td>
+            <td data-label="Nome">${item.Nome || ''}</td>
+            <td data-label="Email">${item.Email || ''}</td>
+            <td data-label="Telefone">${item.Telefone || ''}</td>
+            <td data-label="Data de Cadastro">${item.DataCadastro || ''}</td>
           `;
           tbody.appendChild(row);
         });
@@ -92,9 +186,6 @@
     }
 
     document.getElementById('atualizar').addEventListener('click', carregarDados);
-
-    // Carrega automaticamente ao abrir a página
-    carregarDados();
   </script>
 </body>
 </html>
