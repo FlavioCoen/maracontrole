@@ -2,44 +2,116 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calculadora de Taxas - Quanto Cobrar do Cliente</title>
+
 <style>
+    :root {
+        --primary: #007bff;
+        --primary-dark: #0069d9;
+        --bg: #f5f5f5;
+        --white: #ffffff;
+    }
+
     body {
         font-family: Arial, sans-serif;
-        margin: 30px;
-        background: #f5f5f5;
-    }
-    .box {
-        background: white;
+        margin: 0;
         padding: 20px;
-        border-radius: 10px;
-        max-width: 400px;
-        margin: auto;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        background: var(--bg);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
     }
+
+    .box {
+        background: var(--white);
+        padding: 25px;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 450px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 1.6rem;
+    }
+
+    label {
+        font-weight: bold;
+        margin-top: 15px;
+        display: block;
+    }
+
     input, select, button {
         width: 100%;
-        padding: 10px;
-        margin-top: 10px;
-        font-size: 16px;
+        padding: 12px;
+        margin-top: 8px;
+        font-size: 1rem;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
     }
+
     button {
-        background: #007bff;
+        background: var(--primary);
         color: white;
         cursor: pointer;
         border: none;
-        border-radius: 5px;
+        margin-top: 20px;
+        font-size: 1.1rem;
+        font-weight: bold;
     }
+
     button:hover {
-        background: #0069d9;
+        background: var(--primary-dark);
     }
+
     .resultado {
-        margin-top: 15px;
-        padding: 15px;
+        margin-top: 20px;
+        padding: 18px;
         background: #e9ffe9;
         border-left: 5px solid #2ecc71;
-        font-size: 18px;
+        font-size: 1.1rem;
+        border-radius: 6px;
         display: none;
+        word-break: break-word;
+    }
+
+    /* -------------------------
+       RESPONSIVIDADE
+    --------------------------*/
+
+    /* Telas menores (celulares pequenos) */
+    @media (max-width: 480px) {
+        body {
+            padding: 10px;
+        }
+        .box {
+            padding: 20px;
+        }
+        h2 {
+            font-size: 1.4rem;
+        }
+    }
+
+    /* Tablets */
+    @media (min-width: 600px) and (max-width: 900px) {
+        .box {
+            max-width: 500px;
+        }
+        h2 {
+            font-size: 1.7rem;
+        }
+    }
+
+    /* Telas grandes */
+    @media (min-width: 1200px) {
+        .box {
+            max-width: 480px;
+        }
     }
 </style>
 </head>
@@ -83,7 +155,6 @@ function calcular() {
         return;
     }
 
-    // Cálculo reverso: valor a cobrar = líquido / (1 - taxa)
     let taxaDecimal = taxa / 100;
     let valorCobrar = valorReceber / (1 - taxaDecimal);
 
